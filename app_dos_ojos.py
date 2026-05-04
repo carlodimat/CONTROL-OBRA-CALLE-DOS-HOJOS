@@ -65,10 +65,9 @@ if df is not None:
                 coloraxis_showscale=False,
                 font=dict(color="#000000", size=14),
                 yaxis=dict(tickfont=dict(size=14, color="#000000")),
-                xaxis=dict(showticklabels=False, range=[0, df_gastos['MONTO BASE USD'].sum() * 1.1]),
-                margin=dict(l=50, r=50, t=50, b=50)
+                xaxis=dict(showticklabels=False),
+                margin=dict(l=50, r=100, t=50, b=50) # Más margen a la derecha para que el texto no se corte
             )
-            # Texto fuera de la barra para visibilidad total
             fig.update_traces(textposition='outside', textfont=dict(color="black", size=15, family="Arial Black"))
             return fig
 
@@ -76,7 +75,8 @@ if df is not None:
         st.write("### 📌 Inversión por Categoría (Incluye Admin)")
         df_tipo = df_gastos.groupby('TIPO')['MONTO BASE USD'].sum().reset_index()
         # Inyectar Admin Delegada
-        df_tipo = pd.concat([df_tipo, pd.DataFrame({'TIPO': ['ADMIN. DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
+        admin_row_tipo = pd.DataFrame({'TIPO': ['ADMIN. DELEGADA'], 'MONTO BASE USD': [total_honorarios]})
+        df_tipo = pd.concat([df_tipo, admin_row_tipo], ignore_index=True)
         df_tipo = df_tipo.sort_values('MONTO BASE USD', ascending=True)
         
         fig_tipo = px.bar(df_tipo, x='MONTO BASE USD', y='TIPO', orientation='h',
@@ -89,7 +89,8 @@ if df is not None:
         st.write("### 📐 Inversión por Área de Obra (Incluye Admin)")
         df_area = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().reset_index()
         # Inyectar Admin Delegada
-        df_area = pd.concat([df_area, pd.DataFrame({'AREA': ['ADMIN. DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
+        admin_row_area = pd.DataFrame({'AREA': ['ADMIN. DELEGADA'], 'MONTO BASE USD': [total_honorarios]})
+        df_area = pd.concat([df_area, admin_row_area], ignore_index=True)
         df_area = df_area.sort_values('MONTO BASE USD', ascending=True)
         
         fig_area = px.bar(df_area, x='MONTO BASE USD', y='AREA', orientation='h',
@@ -102,7 +103,8 @@ if df is not None:
         st.write("### 👥 Inversión por Proveedor (Top 20 + Admin)")
         df_prov = df_gastos.groupby('PROVEEDOR')['MONTO BASE USD'].sum().sort_values(ascending=False).head(20).reset_index()
         # Inyectar Admin Delegada como DIMAQUINAS
-        df_prov = pd.concat([df_prov, pd.DataFrame({'PROVEEDOR': [f'{empresa} (ADMIN)'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
+        admin_row_prov = pd.DataFrame({'PROVEEDOR': [f'{empresa} (ADMIN)'], 'MONTO BASE USD': [total_honorarios]})
+        df_prov = pd.concat([df_prov, admin_row_prov], ignore_index=True)
         df_prov = df_prov.sort_values('MONTO BASE USD', ascending=True)
         
         fig_prov = px.bar(df_prov, x='MONTO BASE USD', y='PROVEEDOR', orientation='h',
@@ -110,7 +112,7 @@ if df is not None:
         st.plotly_chart(update_style_final(fig_prov), use_container_width=True)
 
     with t2:
-        st.subheader("📝 Listado de Egresos")
+        st.subheader("📝 Listado de Egresos Detallado")
         df_egresos_disp = df_gastos[['FECHA', 'TIPO', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL']].sort_values('FECHA', ascending=False)
         st.dataframe(df_egresos_disp.style.format({
             "MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"
@@ -123,10 +125,21 @@ if df is not None:
         }), use_container_width=True)
 
     with t4:
-        query = st.text_input("Filtrar datos:")
+        st.subheader("🔍 Buscador de Datos")
+        query = st.text_input("Filtrar datos por palabra (Proveedor, Material, etc):")
         if query:
-            res = df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
-            st.dataframe(res.style.format({"MONTO BASE USD": "${:,.0f}"}), use_container_width=True)
+            mask = df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)
+            res = df[mask]
+            
+            st.success(f"Se encontraron **{len(res)}** registros.")
+            suma_busc = res['MONTO BASE USD'].sum()
+            st.info(f"Suma Total de lo encontrado: **$ {suma_busc:,.0f}**")
+            
+            st.dataframe(res.style.format({
+                "MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"
+            }), use_container_width=True)
+        else:
+            st.write("Escribe algo arriba...")
 
 else:
     st.error("Archivo CSV no encontrado.")
