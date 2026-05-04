@@ -9,8 +9,9 @@ st.set_page_config(page_title="DIMAQUINAS C.A. - CONTROL DE OBRA", layout="wide"
 st.markdown("""
     <style>
     .stMetric { border: 1px solid #1e3a8a; padding: 20px; border-radius: 12px; background: #f8fafc; }
-    .header-box { background-color: #1e3a8a; color: white; padding: 20px; border-radius: 10px; margin-bottom: 25px; text-align: center; }
-    .title-text { font-size: 32px; font-weight: bold; margin: 0; }
+    .header-box { background-color: #1e3a8a; color: white; padding: 30px; border-radius: 10px; margin-bottom: 25px; text-align: center; }
+    .title-text { font-size: 48px; font-weight: bold; margin: 0; letter-spacing: 2px; }
+    .subtitle-text { font-size: 24px; margin: 0; opacity: 0.9; }
     html, body, [class*="st-"] { color: #000000; font-weight: 500; }
     </style>
     """, unsafe_allow_html=True)
@@ -20,7 +21,6 @@ def load_all_data():
     try:
         df = pd.read_csv("DIMAQUINAS CALLE DOS OJOS.csv")
         df['FECHA'] = pd.to_datetime(df['FECHA'])
-        # Limpieza de todas las columnas financieras detectadas en el CSV
         cols_fin = ['MONTO BASE USD', 'MONTO PAGADO', 'HONORARIOS', 'COSTO TOTAL', '% ADMIN', 'MONTO ORIG', 'TASA']
         for col in cols_fin:
             if col in df.columns:
@@ -44,8 +44,13 @@ if df is not None:
     total_pagado = (df_gastos['MONTO PAGADO'].sum()) * (1 + pct_admin/100) if pct_admin > 0 else df_gastos['MONTO PAGADO'].sum()
     saldo = total_ing - total_pagado
 
-    # --- ENCABEZADO ---
-    st.markdown(f'<div class="header-box"><p class="title-text">{empresa}<br><span style="font-size:20px;">OBRA: {obra}</span></p></div>', unsafe_allow_html=True)
+    # --- ENCABEZADO GIGANTE ---
+    st.markdown(f"""
+        <div class="header-box">
+            <p class="title-text">{empresa}</p>
+            <p class="subtitle-text">OBRA: {obra}</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     # --- MÉTRICAS ---
     m1, m2, m3, m4 = st.columns(4)
@@ -121,15 +126,9 @@ if df is not None:
             st.success(f"Se encontraron **{len(res)}** registros.")
             suma_busc = res['MONTO BASE USD'].sum()
             st.info(f"Suma Total de lo encontrado: **$ {suma_busc:,.2f}**")
-            
-            # Formato extendido para todas las columnas numéricas
             st.dataframe(res.style.format({
-                "MONTO BASE USD": "${:,.2f}", 
-                "MONTO ORIG": "{:,.2f}", 
-                "TASA": "{:,.2f}",
-                "HONORARIOS": "${:,.2f}", 
-                "COSTO TOTAL": "${:,.2f}",
-                "MONTO PAGADO": "${:,.2f}"
+                "MONTO BASE USD": "${:,.2f}", "MONTO ORIG": "{:,.2f}", "TASA": "{:,.2f}",
+                "HONORARIOS": "${:,.2f}", "COSTO TOTAL": "${:,.2f}", "MONTO PAGADO": "${:,.2f}"
             }), use_container_width=True)
         else:
             st.write("Escribe algo arriba...")
