@@ -39,7 +39,7 @@ if df is not None:
     total_ing = df[df['CLASE'] == 'INGRESO']['MONTO BASE USD'].sum()
     total_neto = df_gastos['MONTO BASE USD'].sum()
     total_honorarios = df_gastos['HONORARIOS'].sum()
-    total_pagado = (df_gastos['MONTO PAGADO'].sum()) * (1 + pct_admin/100)
+    total_pagado = (df_gastos['MONTO PAGADO'].sum()) * (1 + pct_admin/100) if pct_admin > 0 else df_gastos['MONTO PAGADO'].sum()
     saldo = total_ing - total_pagado
 
     # --- ENCABEZADO ---
@@ -59,39 +59,44 @@ if df is not None:
 
     with t1:
         # --- GRÁFICO 1: CATEGORÍAS (TIPO) ---
-        st.subheader("📌 Inversión por Categoría")
+        st.write("### 📌 Inversión por Categoría (TIPO)")
         df_tipo = df_gastos.groupby('TIPO')['MONTO BASE USD'].sum().sort_values(ascending=True).reset_index()
-        fig_tipo = px.bar(df_tipo, x='MONTO BASE USD', y='TIPO', orientation='h',
-                          color='MONTO BASE USD', color_continuous_scale='Viridis',
-                          text_auto=',.0f', title="Mano de Obra, Estructura, Contratistas, etc.")
-        fig_tipo.update_layout(coloraxis_showscale=False, yaxis={'categoryorder':'total ascending'})
-        st.plotly_chart(fig_tipo, use_container_width=True)
-
-        col_a, col_b = st.columns(2)
+        if not df_tipo.empty:
+            fig_tipo = px.bar(df_tipo, x='MONTO BASE USD', y='TIPO', orientation='h',
+                              color='MONTO BASE USD', color_continuous_scale='Viridis',
+                              text_auto=',.0f')
+            fig_tipo.update_layout(coloraxis_showscale=False, yaxis={'categoryorder':'total ascending'}, height=500)
+            st.plotly_chart(fig_tipo, use_container_width=True)
         
-        with col_a:
-            # --- GRÁFICO 2: ÁREA DE OBRA ---
-            st.subheader("📐 Inversión por Área de Obra")
-            df_area = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().sort_values(ascending=True).reset_index()
+        st.divider()
+
+        # --- GRÁFICO 2: ÁREA DE OBRA ---
+        st.write("### 📐 Inversión por Área de Obra (AREA)")
+        df_area = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().sort_values(ascending=True).reset_index()
+        if not df_area.empty:
             fig_area = px.bar(df_area, x='MONTO BASE USD', y='AREA', orientation='h',
                               color='MONTO BASE USD', color_continuous_scale='Blues',
                               text_auto=',.0f')
-            fig_area.update_layout(coloraxis_showscale=False, yaxis={'categoryorder':'total ascending'})
+            fig_area.update_layout(coloraxis_showscale=False, yaxis={'categoryorder':'total ascending'}, height=600)
             st.plotly_chart(fig_area, use_container_width=True)
 
-        with col_b:
-            # --- GRÁFICO 3: TOP PROVEEDORES ---
-            st.subheader("👥 Top 10 Proveedores")
-            df_prov = df_gastos.groupby('PROVEEDOR')['MONTO BASE USD'].sum().sort_values(ascending=False).head(10).sort_values(ascending=True).reset_index()
+        st.divider()
+
+        # --- GRÁFICO 3: TOP PROVEEDORES ---
+        st.write("### 👥 Inversión por Proveedor (TOP 20)")
+        # Mostramos los 20 principales para dar más detalle
+        df_prov = df_gastos.groupby('PROVEEDOR')['MONTO BASE USD'].sum().sort_values(ascending=False).head(20).sort_values(ascending=True).reset_index()
+        if not df_prov.empty:
             fig_prov = px.bar(df_prov, x='MONTO BASE USD', y='PROVEEDOR', orientation='h',
                               color='MONTO BASE USD', color_continuous_scale='Reds',
                               text_auto=',.0f')
-            fig_prov.update_layout(coloraxis_showscale=False, yaxis={'categoryorder':'total ascending'})
+            fig_prov.update_layout(coloraxis_showscale=False, yaxis={'categoryorder':'total ascending'}, height=700)
             st.plotly_chart(fig_prov, use_container_width=True)
 
     with t2:
         st.subheader("📝 Listado de Egresos")
-        st.dataframe(df_gastos[['FECHA', 'TIPO', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL']].sort_values('FECHA', ascending=False).style.format({
+        df_egresos_disp = df_gastos[['FECHA', 'TIPO', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL']].sort_values('FECHA', ascending=False)
+        st.dataframe(df_egresos_disp.style.format({
             "MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"
         }), use_container_width=True)
 
@@ -102,11 +107,11 @@ if df is not None:
         }), use_container_width=True)
 
     with t4:
-        query = st.text_input("🔍 Buscador inteligente:")
+        st.subheader("🔍 Buscador")
+        query = st.text_input("Escribe cualquier dato para filtrar:")
         if query:
             res = df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
-            st.dataframe(res.style.format({"MONTO BASE USD": "${:,.0f}"}), use_container_width=True)
+            st.dataframe(res.style.format({"MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"}), use_container_width=True)
 
 else:
     st.error("Archivo CSV no encontrado.")
-
