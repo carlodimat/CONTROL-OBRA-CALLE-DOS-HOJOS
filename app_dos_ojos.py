@@ -9,9 +9,9 @@ st.set_page_config(page_title="DIMAQUINAS C.A. - CONTROL DE OBRA", layout="wide"
 st.markdown("""
     <style>
     .stMetric { border: 1px solid #1e3a8a; padding: 20px; border-radius: 12px; background: #f8fafc; }
-    .header-box { background-color: #1e3a8a; color: white; padding: 40px; border-radius: 15px; margin-bottom: 30px; text-align: center; }
-    .title-text { font-size: 150px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -2px; line-height: 0.9; }
-    .subtitle-text { font-size: 40px; margin-top: 10px; opacity: 0.9; font-weight: 400; }
+    .header-box { background-color: #1e3a8a; color: white; padding: 80px; border-radius: 15px; margin-bottom: 30px; text-align: center; }
+    .title-text { font-size: 100px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 2px; line-height: 1; }
+    .subtitle-text { font-size: 35px; margin-top: 15px; opacity: 0.9; font-weight: 400; }
     html, body, [class*="st-"] { color: #000000; font-weight: 500; }
     </style>
     """, unsafe_allow_html=True)
@@ -44,7 +44,7 @@ if df is not None:
     total_pagado = (df_gastos['MONTO PAGADO'].sum()) * (1 + pct_admin/100) if pct_admin > 0 else df_gastos['MONTO PAGADO'].sum()
     saldo = total_ing - total_pagado
 
-    # --- ENCABEZADO MASIVO ---
+    # --- ENCABEZADO RESTAURADO ---
     st.markdown(f"""
         <div class="header-box">
             <p class="title-text">{empresa}</p>
