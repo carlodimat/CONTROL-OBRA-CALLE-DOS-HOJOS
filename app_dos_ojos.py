@@ -114,7 +114,6 @@ if df is not None:
         
         if query:
             # Lógica de búsqueda exacta (Case Insensitive)
-            # \b significa límite de palabra
             pattern = rf'\b{re.escape(query)}\b'
             
             # Buscamos en todas las columnas convirtiendo a string
@@ -133,11 +132,5 @@ if df is not None:
                 st.warning(f"No se encontraron coincidencias exactas para '{query}'.")
         else:
             st.write("Introduce una palabra arriba para filtrar los datos.")
-
-# --- ACTUALIZACIÓN DE LIBRERÍAS ---
-# He añadido 'plotly' a tu archivo requirements.txt para que esto funcione en la web.
-
-            st.dataframe(df, use_container_width=True)
-
-except Exception as e:
-    st.error(f"Error al cargar la plataforma: {e}")
+else:
+    st.warning("Por favor, asegura que el archivo 'DIMAQUINAS CALLE DOS OJOS.csv' esté en la misma carpeta.")
