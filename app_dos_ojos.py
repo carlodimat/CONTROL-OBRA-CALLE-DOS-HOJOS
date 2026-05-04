@@ -1,13 +1,3 @@
-¡Entendido! He ajustado los gráficos para que sean mucho más legibles y tengan "más aire". 
-
-**Cambios aplicados:**
-1.  **Barras más gruesas**: He aumentado la altura de los gráficos (especialmente el de Áreas) para que las barras tengan un grosor cómodo y los montos quepan perfectamente.
-2.  **Letras Negras y Claras**: He forzado el color de la fuente a **Negro (#000000)** y aumentado el tamaño de la letra para que los nombres de los proveedores y las áreas se lean sin esfuerzo.
-3.  **Montos Destacados**: Las etiquetas de los montos ahora son más oscuras y legibles.
-
-### Código Ajustado (Letras oscuras y barras gruesas): `app_dos_ojos.py`
-
-```python
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -96,7 +86,6 @@ if df is not None:
         st.write("### 📐 Inversión por Área de Obra (AREA)")
         df_area = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().sort_values(ascending=True).reset_index()
         if not df_area.empty:
-            # Aumentamos la altura a 800 para que las barras sean gruesas
             fig_area = px.bar(df_area, x='MONTO BASE USD', y='AREA', orientation='h',
                               color='MONTO BASE USD', color_continuous_scale='Blues', text_auto=',.0f',
                               height=800) 
@@ -114,7 +103,7 @@ if df is not None:
             st.plotly_chart(update_style(fig_prov), use_container_width=True)
 
     with t2:
-        st.subheader("📝 Listado de Egresos")
+        st.subheader("📝 Listado de Egresos Detallado")
         df_egresos_disp = df_gastos[['FECHA', 'TIPO', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL']].sort_values('FECHA', ascending=False)
         st.dataframe(df_egresos_disp.style.format({
             "MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"
@@ -128,15 +117,10 @@ if df is not None:
 
     with t4:
         st.subheader("🔍 Buscador")
-        query = st.text_input("Filtrar datos:")
+        query = st.text_input("Filtrar datos por palabra:")
         if query:
             res = df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
-            st.dataframe(res.style.format({"MONTO BASE USD": "${:,.0f}"}), use_container_width=True)
+            st.dataframe(res.style.format({"MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"}), use_container_width=True)
 
 else:
     st.error("Archivo CSV no encontrado.")
-```
-
-He actualizado el código. Verás que las letras ahora son **completamente negras** y las gráficas de Áreas y Proveedores tienen **800 píxeles de altura**, lo que hace que las barras sean mucho más robustas y fáciles de analizar.
-
-¿Te parece que la visibilidad ha mejorado lo suficiente con estos ajustes? Súbelo a GitHub y compruébalo.
