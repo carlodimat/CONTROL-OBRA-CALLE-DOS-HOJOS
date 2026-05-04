@@ -1,106 +1,142 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
+import re
 
-st.set_page_config(page_title="Control Pro Calle Dos Ojos", layout="wide")
+# 1. Configuración de la página
+st.set_page_config(page_title="Control Pro Calle Dos Ojos", layout="wide", page_icon="🏗️")
+
+# Estilo visual mejorado
+st.markdown("""
+    <style>
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #eee; }
+    h1, h2, h3 { color: #1e3a8a; }
+    </style>
+    """, unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
-    # Cargar el archivo de Calle Dos Ojos
     try:
+        # Cargamos el archivo específico de Calle Dos Ojos
         df = pd.read_csv("DIMAQUINAS CALLE DOS OJOS.csv")
-    except Exception as e:
-        st.error(f"No se pudo encontrar el archivo CSV: {e}")
-        return None
-    
-    # Convertir fecha
-    df['FECHA'] = pd.to_datetime(df['FECHA'])
-    
-    # Limpieza de columnas financieras
-    cols = ['MONTO BASE USD', 'MONTO PAGADO', 'HONORARIOS', 'COSTO TOTAL']
-    for col in cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-    
-    return df
-
-try:
-    df = load_data()
-    if df is not None:
-        st.title('🏗️ Control Integral: Calle Dos Ojos')
-        st.info("Proyecto gestionado por Dimaquinas C.A.")
-
-        # --- MÉTRICAS DE CABECERA ---
-        ing = df[df['CLASE'] == 'INGRESO']['MONTO BASE USD'].sum()
-        gas = df[df['CLASE'] == 'GASTO']['MONTO BASE USD'].sum()
-        adm = df['HONORARIOS'].sum() # Administración Delegada
+        df['FECHA'] = pd.to_datetime(df['FECHA'])
         
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Total Ingresos", f"${ing:,.2f}")
-        c2.metric("Gastos Directos", f"${gas:,.2f}")
-        c3.metric("Admin. Delegada", f"${adm:,.2f}")
-        c4.metric("Caja Disponible", f"${ing - gas - adm:,.2f}")
+        # Limpieza y conversión de columnas financieras
+        cols = ['MONTO BASE USD', 'MONTO PAGADO', 'HONORARIOS', 'COSTO TOTAL']
+        for col in cols:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        
+        return df
+    except Exception as e:
+        st.error(f"Error al cargar el archivo CSV: {e}")
+        return None
 
-        st.divider()
+# --- INICIO DE LA APLICACIÓN ---
+df = load_data()
 
-        # --- PESTAÑAS PARA ORGANIZAR EL CONTENIDO ---
-        tab1, tab2, tab3 = st.tabs(["📊 Análisis General", "💰 Detalle de Ingresos", "🔍 Buscador y Datos"])
+if df is not None:
+    # --- BARRA LATERAL (Sidebar) ---
+    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/4342/4342728.png", width=80)
+    st.sidebar.header("⚙️ Ajustes de Control")
+    
+    area_m2 = st.sidebar.number_input("Área de Construcción (m²)", value=850.0)
+    precio_m2_est = st.sidebar.number_input("Presupuesto Estimado ($/m²)", value=750.0)
+    pct_admin = st.sidebar.slider("% Administración Delegada", 0, 20, 10) / 100
 
-        with tab1:
-            vista = st.radio("Frecuencia de las gráficas:", ["Semanal", "Mensual"], horizontal=True)
-            periodo = 'W' if vista == "Semanal" else 'ME'
+    st.sidebar.divider()
+    st.sidebar.info("Este dashboard procesa los datos en tiempo real desde el archivo CSV de Calle Dos Ojos.")
+
+    # --- CÁLCULOS GENERALES ---
+    # Gastos directos y administración
+    df_gastos = df[df['CLASE'] == 'GASTO'].copy()
+    df_gastos['HONORARIOS_CALC'] = df_gastos['MONTO BASE USD'] * pct_admin
+    df_gastos['TOTAL_CON_ADMIN'] = df_gastos['MONTO BASE USD'] * (1 + pct_admin)
+    
+    total_ingresos = df[df['CLASE'] == 'INGRESO']['MONTO BASE USD'].sum()
+    total_gastos_netos = df_gastos['MONTO BASE USD'].sum()
+    total_admin = total_gastos_netos * pct_admin
+    total_obra = total_gastos_netos + total_admin
+    
+    # Pagos y Deudas
+    total_pagado = df_gastos['MONTO PAGADO'].sum() * (1 + pct_admin)
+    caja_disponible = total_ingresos - total_pagado
+
+    # --- TÍTULO Y MÉTRICAS PRINCIPALES ---
+    st.title("🏗️ Control de Obra: Calle Dos Ojos")
+    st.subheader("Dimaquinas C.A. - Administración Delegada")
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Total Ingresos", f"${total_ingresos:,.2f}")
+    m2.metric("Inversión Total (Obra)", f"${total_obra:,.2f}", f"Admin: ${total_admin:,.0f}")
+    m3.metric("Caja Disponible", f"${caja_disponible:,.2f}", delta_color="normal")
+    m4.metric("Pagado a la Fecha", f"${total_pagado:,.2f}", delta=f"${total_obra - total_pagado:,.2f} Pendiente", delta_color="inverse")
+
+    st.divider()
+
+    # --- PESTAÑAS DE CONTENIDO ---
+    tab1, tab2, tab3 = st.tabs(["📊 Análisis Financiero", "💰 Ingresos y Flujo", "🔍 Buscador Exacto"])
+
+    with tab1:
+        c1, c2 = st.columns([2, 1])
+        
+        with c1:
+            st.write("### Evolución de Gastos por Disciplina")
+            df_area = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().reset_index()
+            fig_area = px.pie(df_area, values='MONTO BASE USD', names='AREA', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_area, use_container_width=True)
             
-            st.subheader(f"Evolución de Flujo ({vista})")
-            df_t = df[df['CLASE'].isin(['INGRESO', 'GASTO'])].copy()
-            # Agrupar por tiempo
-            df_time = df_t.groupby([pd.Grouper(key='FECHA', freq=periodo), 'CLASE'])['MONTO BASE USD'].sum().unstack().fillna(0)
-            st.area_chart(df_time)
-
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.write("### Egresos por Tipo")
-                df_tipo = df[df['CLASE'] == 'GASTO'].groupby('TIPO')['MONTO BASE USD'].sum().sort_values()
-                if not df_tipo.empty:
-                    fig_a, ax_a = plt.subplots()
-                    df_tipo.plot(kind='barh', color='lightcoral', ax=ax_a)
-                    st.pyplot(fig_a)
-                else:
-                    st.write("No hay gastos registrados para mostrar.")
-                    
-            with col_b:
-                st.write("### Distribución de Administración")
-                # Mostrar honorarios acumulados por mes
-                df_adm_t = df.groupby(pd.Grouper(key='FECHA', freq='ME'))['HONORARIOS'].sum()
-                if not df_adm_t.empty:
-                    st.line_chart(df_adm_t)
-                else:
-                    st.write("No hay honorarios registrados.")
-
-        with tab2:
-            st.subheader("Listado Detallado de Ingresos")
-            df_ing = df[df['CLASE'] == 'INGRESO'][['FECHA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD']].sort_values('FECHA', ascending=False)
-            st.dataframe(df_ing, use_container_width=True)
+        with c2:
+            st.write("### Análisis de m²")
+            presupuesto_total = area_m2 * precio_m2_est
+            costo_actual_m2 = total_obra / area_m2 if area_m2 > 0 else 0
             
-            # Gráfica de quién ha aportado más
-            if not df_ing.empty:
-                st.write("### Concentración de Abonos por Origen")
-                df_ing_pie = df_ing.groupby('PROVEEDOR')['MONTO BASE USD'].sum()
-                fig_p, ax_p = plt.subplots()
-                df_ing_pie.plot(kind='pie', autopct='%1.1f%%', ax=ax_p, cmap='Pastel2')
-                ax_p.set_ylabel("")
-                st.pyplot(fig_p)
+            st.write(f"**Presupuesto Objetivo:** ${presupuesto_total:,.2f}")
+            st.write(f"**Costo Real Actual / m²:** ${costo_actual_m2:,.2f}")
+            
+            progreso = (total_obra / presupuesto_total) if presupuesto_total > 0 else 0
+            st.progress(min(progreso, 1.0))
+            st.write(f"Ejecución: {progreso*100:.1f}% del presupuesto estimado.")
 
-        with tab3:
-            st.subheader("Buscador Global")
-            query = st.text_input("Escribe el nombre de un proveedor, material o descripción:")
-            if query:
-                df_res = df[df.apply(lambda row: query.lower() in row.astype(str).str.lower().values, axis=1)]
-                st.write(f"Resultados encontrados: {len(df_res)}")
+    with tab2:
+        st.write("### Historial de Ingresos")
+        df_ing = df[df['CLASE'] == 'INGRESO'][['FECHA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD']].sort_values('FECHA', ascending=False)
+        st.dataframe(df_ing, use_container_width=True)
+        
+        st.write("### Flujo de Caja")
+        df_flujo = df.groupby(pd.Grouper(key='FECHA', freq='W'))['MONTO BASE USD'].sum().cumsum()
+        st.line_chart(df_flujo)
+
+    with tab3:
+        st.write("### 🔍 Buscador de Palabra Exacta")
+        st.info("Este buscador solo encontrará la palabra completa. Ejemplo: Si buscas 'Cemento', no aparecerá 'Microcemento'.")
+        
+        query = st.text_input("Ingresa el material o concepto a buscar (Ej: Cemento):")
+        
+        if query:
+            # Lógica de búsqueda exacta (Case Insensitive)
+            # \b significa límite de palabra
+            pattern = rf'\b{re.escape(query)}\b'
+            
+            # Buscamos en todas las columnas convirtiendo a string
+            mask = df.apply(lambda row: row.astype(str).str.contains(pattern, case=False, regex=True).any(), axis=1)
+            df_res = df[mask]
+            
+            if not df_res.empty:
+                st.success(f"Se encontraron {len(df_res)} registros exactos para '{query}'.")
+                
+                # Cálculo del total de la búsqueda
+                total_busc = df_res[df_res['CLASE'] == 'GASTO']['MONTO BASE USD'].sum()
+                st.metric(f"Total Neto en '{query}'", f"${total_busc:,.2f}")
+                
                 st.dataframe(df_res, use_container_width=True)
             else:
-                st.write("Usa la barra de arriba para filtrar cualquier dato.")
-            
-            st.subheader("Todos los Datos")
+                st.warning(f"No se encontraron coincidencias exactas para '{query}'.")
+        else:
+            st.write("Introduce una palabra arriba para filtrar los datos.")
+
+# --- ACTUALIZACIÓN DE LIBRERÍAS ---
+# He añadido 'plotly' a tu archivo requirements.txt para que esto funcione en la web.
+
             st.dataframe(df, use_container_width=True)
 
 except Exception as e:
