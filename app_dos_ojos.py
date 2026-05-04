@@ -48,10 +48,10 @@ if df is not None:
 
     # --- MÉTRICAS ---
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("TOTAL INGRESOS", f"$ {total_ing:,.0f}")
-    m2.metric("COSTO NETO OBRA", f"$ {total_neto:,.0f}")
-    m3.metric("ADMIN. DELEGADA", f"$ {total_honorarios:,.0f}")
-    m4.metric("SALDO DISPONIBLE", f"$ {saldo:,.0f}")
+    m1.metric("TOTAL INGRESOS", f"$ {total_ing:,.2f}")
+    m2.metric("COSTO NETO OBRA", f"$ {total_neto:,.2f}")
+    m3.metric("ADMIN. DELEGADA", f"$ {total_honorarios:,.2f}")
+    m4.metric("SALDO DISPONIBLE", f"$ {saldo:,.2f}")
 
     st.divider()
 
@@ -59,54 +59,46 @@ if df is not None:
     t1, t2, t3, t4 = st.tabs(["📊 ANÁLISIS DE GRÁFICOS", "💸 LISTA DE EGRESOS", "💰 LISTA DE INGRESOS", "🔍 BUSCADOR"])
 
     with t1:
-        # Función para estilo de gráfico con texto afuera
         def update_style_final(fig):
             fig.update_layout(
                 coloraxis_showscale=False,
                 font=dict(color="#000000", size=14),
                 yaxis=dict(tickfont=dict(size=14, color="#000000")),
                 xaxis=dict(showticklabels=False),
-                margin=dict(l=50, r=100, t=50, b=50) # Más margen a la derecha para que el texto no se corte
+                margin=dict(l=50, r=100, t=50, b=50)
             )
+            # En gráficos mantenemos el formato visual limpio sin decimales
             fig.update_traces(textposition='outside', textfont=dict(color="black", size=15, family="Arial Black"))
             return fig
 
-        # --- GRÁFICO 1: CATEGORÍAS ---
+        # --- GRÁFICOS CON ADMIN INYECTADA ---
         st.write("### 📌 Inversión por Categoría (Incluye Admin)")
         df_tipo = df_gastos.groupby('TIPO')['MONTO BASE USD'].sum().reset_index()
-        # Inyectar Admin Delegada
         admin_row_tipo = pd.DataFrame({'TIPO': ['ADMIN. DELEGADA'], 'MONTO BASE USD': [total_honorarios]})
         df_tipo = pd.concat([df_tipo, admin_row_tipo], ignore_index=True)
         df_tipo = df_tipo.sort_values('MONTO BASE USD', ascending=True)
-        
         fig_tipo = px.bar(df_tipo, x='MONTO BASE USD', y='TIPO', orientation='h',
                           color='MONTO BASE USD', color_continuous_scale='Viridis', text_auto=',.0f')
         st.plotly_chart(update_style_final(fig_tipo), use_container_width=True)
         
         st.divider()
 
-        # --- GRÁFICO 2: ÁREA DE OBRA ---
         st.write("### 📐 Inversión por Área de Obra (Incluye Admin)")
         df_area = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().reset_index()
-        # Inyectar Admin Delegada
         admin_row_area = pd.DataFrame({'AREA': ['ADMIN. DELEGADA'], 'MONTO BASE USD': [total_honorarios]})
         df_area = pd.concat([df_area, admin_row_area], ignore_index=True)
         df_area = df_area.sort_values('MONTO BASE USD', ascending=True)
-        
         fig_area = px.bar(df_area, x='MONTO BASE USD', y='AREA', orientation='h',
                           color='MONTO BASE USD', color_continuous_scale='Blues', text_auto=',.0f', height=800) 
         st.plotly_chart(update_style_final(fig_area), use_container_width=True)
 
         st.divider()
 
-        # --- GRÁFICO 3: PROVEEDORES ---
         st.write("### 👥 Inversión por Proveedor (Top 20 + Admin)")
         df_prov = df_gastos.groupby('PROVEEDOR')['MONTO BASE USD'].sum().sort_values(ascending=False).head(20).reset_index()
-        # Inyectar Admin Delegada como DIMAQUINAS
         admin_row_prov = pd.DataFrame({'PROVEEDOR': [f'{empresa} (ADMIN)'], 'MONTO BASE USD': [total_honorarios]})
         df_prov = pd.concat([df_prov, admin_row_prov], ignore_index=True)
         df_prov = df_prov.sort_values('MONTO BASE USD', ascending=True)
-        
         fig_prov = px.bar(df_prov, x='MONTO BASE USD', y='PROVEEDOR', orientation='h',
                           color='MONTO BASE USD', color_continuous_scale='Reds', text_auto=',.0f', height=800)
         st.plotly_chart(update_style_final(fig_prov), use_container_width=True)
@@ -115,28 +107,26 @@ if df is not None:
         st.subheader("📝 Listado de Egresos Detallado")
         df_egresos_disp = df_gastos[['FECHA', 'TIPO', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL']].sort_values('FECHA', ascending=False)
         st.dataframe(df_egresos_disp.style.format({
-            "MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"
+            "MONTO BASE USD": "${:,.2f}", "HONORARIOS": "${:,.2f}", "COSTO TOTAL": "${:,.2f}"
         }), use_container_width=True)
 
     with t3:
         st.subheader("📥 Listado de Ingresos")
         st.dataframe(df[df['CLASE'] == 'INGRESO'][['FECHA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO BASE USD']].sort_values('FECHA', ascending=False).style.format({
-            "MONTO BASE USD": "${:,.0f}"
+            "MONTO BASE USD": "${:,.2f}"
         }), use_container_width=True)
 
     with t4:
         st.subheader("🔍 Buscador de Datos")
-        query = st.text_input("Filtrar datos por palabra (Proveedor, Material, etc):")
+        query = st.text_input("Filtrar datos por palabra:")
         if query:
             mask = df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)
             res = df[mask]
-            
             st.success(f"Se encontraron **{len(res)}** registros.")
             suma_busc = res['MONTO BASE USD'].sum()
-            st.info(f"Suma Total de lo encontrado: **$ {suma_busc:,.0f}**")
-            
+            st.info(f"Suma Total de lo encontrado: **$ {suma_busc:,.2f}**")
             st.dataframe(res.style.format({
-                "MONTO BASE USD": "${:,.0f}", "HONORARIOS": "${:,.0f}", "COSTO TOTAL": "${:,.0f}"
+                "MONTO BASE USD": "${:,.2f}", "HONORARIOS": "${:,.2f}", "COSTO TOTAL": "${:,.2f}"
             }), use_container_width=True)
         else:
             st.write("Escribe algo arriba...")
