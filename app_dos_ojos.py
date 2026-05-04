@@ -9,9 +9,9 @@ st.set_page_config(page_title="DIMAQUINAS C.A. - CONTROL DE OBRA", layout="wide"
 st.markdown("""
     <style>
     .stMetric { border: 1px solid #1e3a8a; padding: 20px; border-radius: 12px; background: #f8fafc; }
-    .header-box { background-color: #1e3a8a; color: white; padding: 30px; border-radius: 10px; margin-bottom: 25px; text-align: center; }
-    .title-text { font-size: 48px; font-weight: bold; margin: 0; letter-spacing: 2px; }
-    .subtitle-text { font-size: 24px; margin: 0; opacity: 0.9; }
+    .header-box { background-color: #1e3a8a; color: white; padding: 40px; border-radius: 10px; margin-bottom: 25px; text-align: center; }
+    .title-text { font-size: 80px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 5px; line-height: 1; }
+    .subtitle-text { font-size: 30px; margin-top: 10px; opacity: 0.9; font-weight: 400; }
     html, body, [class*="st-"] { color: #000000; font-weight: 500; }
     </style>
     """, unsafe_allow_html=True)
