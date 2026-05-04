@@ -67,12 +67,7 @@ if df is not None:
     saldo_caja = total_ing - total_pagado_real
 
     # --- ENCABEZADO MASIVO ---
-    st.markdown(f"""
-        <div class="header-box">
-            <p class="title-text">{empresa}</p>
-            <p class="subtitle-text">OBRA: {obra}</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div class="header-box"><p class="title-text">{empresa}</p><p class="subtitle-text">OBRA: {obra}</p></div>', unsafe_allow_html=True)
 
     # --- MÉTRICAS DE RESUMEN ---
     m1, m2, m3, m4 = st.columns(4)
@@ -91,7 +86,10 @@ if df is not None:
             fig.update_layout(
                 coloraxis_showscale=False,
                 font=dict(color="#000000", size=11),
-                yaxis=dict(tickfont=dict(size=11, color="#000000")),
+                yaxis=dict(
+                    tickfont=dict(size=11, color="#000000"),
+                    categoryorder='total ascending' # FORZAR ORDEN POR MONTO
+                ),
                 xaxis=dict(showticklabels=False, range=[0, max_val * 1.5]),
                 margin=dict(l=10, r=180, t=30, b=10)
             )
@@ -103,7 +101,6 @@ if df is not None:
         df_t = df_gastos.groupby('TIPO')['MONTO BASE USD'].sum().reset_index()
         df_t = pd.concat([df_t, pd.DataFrame({'TIPO':['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD':[total_honorarios]})], ignore_index=True)
         df_t['TIPO'] = df_t['TIPO'].apply(wrap_labels)
-        df_t = df_t.sort_values('MONTO BASE USD', ascending=True)
         fig1 = px.bar(df_t, x='MONTO BASE USD', y='TIPO', orientation='h', color='MONTO BASE USD', color_continuous_scale='Viridis', text_auto=',.0f')
         st.plotly_chart(apply_chart_style(fig1, df_t['MONTO BASE USD'].max()), use_container_width=True)
         
@@ -114,7 +111,6 @@ if df is not None:
         df_a = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().reset_index()
         df_a = pd.concat([df_a, pd.DataFrame({'AREA':['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD':[total_honorarios]})], ignore_index=True)
         df_a['AREA'] = df_a['AREA'].apply(wrap_labels)
-        df_a = df_a.sort_values('MONTO BASE USD', ascending=True)
         fig2 = px.bar(df_a, x='MONTO BASE USD', y='AREA', orientation='h', color='MONTO BASE USD', color_continuous_scale='Blues', text_auto=',.0f', height=700)
         st.plotly_chart(apply_chart_style(fig2, df_a['MONTO BASE USD'].max()), use_container_width=True)
 
@@ -125,7 +121,6 @@ if df is not None:
         df_p = df_gastos.groupby('PROVEEDOR')['MONTO BASE USD'].sum().sort_values(ascending=False).head(20).reset_index()
         df_p = pd.concat([df_p, pd.DataFrame({'PROVEEDOR':['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD':[total_honorarios]})], ignore_index=True)
         df_p['PROVEEDOR'] = df_p['PROVEEDOR'].apply(wrap_labels)
-        df_p = df_p.sort_values('MONTO BASE USD', ascending=True)
         fig3 = px.bar(df_p, x='MONTO BASE USD', y='PROVEEDOR', orientation='h', color='MONTO BASE USD', color_continuous_scale='Reds', text_auto=',.0f', height=800)
         st.plotly_chart(apply_chart_style(fig3, df_p['MONTO BASE USD'].max()), use_container_width=True)
 
