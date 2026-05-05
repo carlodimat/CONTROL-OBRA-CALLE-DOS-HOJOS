@@ -198,11 +198,16 @@ if df is not None:
         if filtro_activo:
             n   = len(df_filtrado)
             tot = df_filtrado['MONTO BASE USD'].sum()
-            st.caption(
-                f"🔍 Filtro activo — **{label_filtro}**: {n} registro{'s' if n != 1 else ''} · "
-                f"Subtotal neto: **$ {tot:,.2f}** · "
-                f"+ Admin. Delegada: **$ {total_honorarios:,.2f}** · "
-                f"Total real: **$ {tot + total_honorarios:,.2f}**"
+            st.markdown(
+                f"""<div style='background:#e8f0fe;border-left:5px solid #1e3a8a;
+                padding:10px 16px;border-radius:6px;margin-top:4px;font-size:1rem;'>
+                🔍 <b>Filtro activo — {label_filtro}:</b> &nbsp;
+                {n} registro{'s' if n != 1 else ''} &nbsp;|
+                Subtotal neto: <b>$ {tot:,.2f}</b> &nbsp;|
+                + Admin. Delegada: <b>$ {total_honorarios:,.2f}</b> &nbsp;|
+                Total real: <b>$ {tot + total_honorarios:,.2f}</b>
+                </div>""",
+                unsafe_allow_html=True
             )
 
     with t1:
