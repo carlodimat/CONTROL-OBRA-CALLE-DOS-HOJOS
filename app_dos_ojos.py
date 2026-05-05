@@ -274,9 +274,9 @@ if df is not None:
                 hovertemplate='<b>%{x|%d/%m/%Y}</b><br>Gastos: $ %{y:,.2f}<extra></extra>',
             ))
 
-            # Línea vertical "hoy"
+            # Línea vertical "hoy" — se convierte a string para evitar error de Plotly con Timestamp
             fig_time.add_vline(
-                x=fecha_hoy, line_dash='dot', line_color='#ef4444',
+                x=fecha_hoy.strftime('%Y-%m-%d'), line_dash='dot', line_color='#ef4444',
                 annotation_text='HOY', annotation_position='top right',
                 annotation_font=dict(color='#ef4444', size=11)
             )
