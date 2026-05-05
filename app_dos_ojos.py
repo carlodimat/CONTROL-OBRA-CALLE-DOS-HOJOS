@@ -89,6 +89,11 @@ if df is not None:
     gasto_total_real    = total_neto + total_honorarios
     saldo_caja          = total_ing - gasto_total_real
 
+    # Totales REALES sin filtrar (para el resumen fijo del gráfico acumulativo)
+    _hon_base        = df_gastos_base['HONORARIOS'].sum() if 'HONORARIOS' in df_gastos_base.columns else 0
+    gasto_base_real  = df_gastos_base['MONTO BASE USD'].sum() + _hon_base
+    saldo_base_real  = total_ing - gasto_base_real
+
     # --- ENCABEZADO ---
     st.markdown(
         f'<div class="header-box">'
@@ -347,12 +352,15 @@ if df is not None:
             st.plotly_chart(fig_time, use_container_width=True)
 
             # Mini resumen debajo del gráfico
-            # Usamos las mismas variables de las métricas de arriba → siempre coinciden
-            color_sal = "🟢" if saldo_caja >= 0 else "🔴"
+            # Siempre muestra los totales REALES sin filtrar para que no engane
+            color_sal_base = "🟢" if saldo_base_real >= 0 else "🔴"
             c1, c2, c3 = st.columns(3)
-            c1.metric("Ingresos Acumulados",       f"$ {total_ing:,.2f}")
-            c2.metric("Gastos + Admin. Acumulados", f"$ {gasto_total_real:,.2f}")
-            c3.metric(f"{color_sal} Saldo Neto",    f"$ {saldo_caja:,.2f}")
+            c1.metric("Ingresos Totales",              f"$ {total_ing:,.2f}")
+            c2.metric("Gastos + Admin. Totales",        f"$ {gasto_base_real:,.2f}")
+            c3.metric(f"{color_sal_base} Saldo Real",   f"$ {saldo_base_real:,.2f}")
+            if filtro_activo:
+                st.caption("⚠️ Los valores de este resumen muestran el **total real del proyecto** (sin filtros). "
+                           "Use las métricas de arriba para ver los valores filtrados.")
 
     with t2:
         st.subheader("📝 Detalle de Gastos")
