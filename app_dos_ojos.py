@@ -231,19 +231,18 @@ if df is not None:
         idx_full = pd.date_range(start=fecha_inicio, end=fecha_hoy, freq=freq_code)
 
         if not df_gastos.empty:
-            # Gastos por período → cumsum usando COSTO TOTAL (base + honorarios AD)
-            # Si COSTO TOTAL no existe en el CSV, lo reconstruimos sumando ambas columnas
-            if 'COSTO TOTAL' in df_gastos.columns:
-                col_gasto = 'COSTO TOTAL'
-            else:
-                df_gastos = df_gastos.copy()
-                df_gastos['COSTO TOTAL'] = df_gastos['MONTO BASE USD'] + df_gastos.get('HONORARIOS', 0)
-                col_gasto = 'COSTO TOTAL'
+            # Siempre calculamos el gasto real como MONTO BASE USD + HONORARIOS
+            # para que coincida exactamente con las métricas de arriba:
+            #   NETO FILTRADO + ADMIN. FILTRADA = lo que veremos en el gráfico
+            df_gastos_chart = df_gastos.copy()
+            hon_col = df_gastos_chart['HONORARIOS'] if 'HONORARIOS' in df_gastos_chart.columns else 0
+            df_gastos_chart['_GASTO_REAL'] = df_gastos_chart['MONTO BASE USD'] + hon_col
 
-            s_gastos = (df_gastos.set_index('FECHA')[col_gasto]
+            s_gastos = (df_gastos_chart.set_index('FECHA')['_GASTO_REAL']
                         .resample(freq_code).sum()
                         .reindex(idx_full, fill_value=0)
                         .cumsum())
+
 
             # Ingresos por período → cumsum (siempre sobre datos completos, sin filtro)
             s_ingresos = (df_ingresos.set_index('FECHA')['MONTO BASE USD']
