@@ -231,8 +231,16 @@ if df is not None:
         idx_full = pd.date_range(start=fecha_inicio, end=fecha_hoy, freq=freq_code)
 
         if not df_gastos.empty:
-            # Gastos por período → cumsum
-            s_gastos = (df_gastos.set_index('FECHA')['MONTO BASE USD']
+            # Gastos por período → cumsum usando COSTO TOTAL (base + honorarios AD)
+            # Si COSTO TOTAL no existe en el CSV, lo reconstruimos sumando ambas columnas
+            if 'COSTO TOTAL' in df_gastos.columns:
+                col_gasto = 'COSTO TOTAL'
+            else:
+                df_gastos = df_gastos.copy()
+                df_gastos['COSTO TOTAL'] = df_gastos['MONTO BASE USD'] + df_gastos.get('HONORARIOS', 0)
+                col_gasto = 'COSTO TOTAL'
+
+            s_gastos = (df_gastos.set_index('FECHA')[col_gasto]
                         .resample(freq_code).sum()
                         .reindex(idx_full, fill_value=0)
                         .cumsum())
@@ -262,10 +270,10 @@ if df is not None:
                 hovertemplate='<b>%{x|%d/%m/%Y}</b><br>Ingresos: $ %{y:,.2f}<extra></extra>',
             ))
 
-            # Área de gastos (encima)
+            # Área de gastos (encima) — incluye Honorarios de Administración Delegada
             fig_time.add_trace(go.Scatter(
                 x=df_evol['FECHA'], y=df_evol['GASTOS'],
-                name='Gastos Acum.',
+                name='Gastos + Admin. Acum.',
                 mode='lines+markers',
                 line=dict(color='#1e3a8a', width=2.5),
                 fill='tozeroy',
@@ -318,9 +326,9 @@ if df is not None:
             saldo_acum = df_evol['INGRESOS'].iloc[-1] - df_evol['GASTOS'].iloc[-1]
             color_sal  = "🟢" if saldo_acum >= 0 else "🔴"
             c1, c2, c3 = st.columns(3)
-            c1.metric("Ingresos Acumulados", f"$ {df_evol['INGRESOS'].iloc[-1]:,.2f}")
-            c2.metric("Gastos Acumulados",   f"$ {df_evol['GASTOS'].iloc[-1]:,.2f}")
-            c3.metric(f"{color_sal} Saldo Neto", f"$ {saldo_acum:,.2f}")
+            c1.metric("Ingresos Acumulados",      f"$ {df_evol['INGRESOS'].iloc[-1]:,.2f}")
+            c2.metric("Gastos + Admin. Acumulados", f"$ {df_evol['GASTOS'].iloc[-1]:,.2f}")
+            c3.metric(f"{color_sal} Saldo Neto",   f"$ {saldo_acum:,.2f}")
 
     with t2:
         st.subheader("📝 Detalle de Gastos")
