@@ -274,11 +274,21 @@ if df is not None:
                 hovertemplate='<b>%{x|%d/%m/%Y}</b><br>Gastos: $ %{y:,.2f}<extra></extra>',
             ))
 
-            # Línea vertical "hoy" — se convierte a string para evitar error de Plotly con Timestamp
-            fig_time.add_vline(
-                x=fecha_hoy.strftime('%Y-%m-%d'), line_dash='dot', line_color='#ef4444',
-                annotation_text='HOY', annotation_position='top right',
-                annotation_font=dict(color='#ef4444', size=11)
+            # Línea vertical "hoy" — usando add_shape + add_annotation por compatibilidad con Plotly en Python 3.14
+            hoy_str = fecha_hoy.strftime('%Y-%m-%d')
+            fig_time.add_shape(
+                type='line',
+                x0=hoy_str, x1=hoy_str,
+                y0=0, y1=1,
+                xref='x', yref='paper',
+                line=dict(color='#ef4444', width=1.5, dash='dot'),
+            )
+            fig_time.add_annotation(
+                x=hoy_str, y=1,
+                xref='x', yref='paper',
+                text='HOY', showarrow=False,
+                xanchor='left', yanchor='top',
+                font=dict(color='#ef4444', size=11, family='Arial Black'),
             )
 
             lbl = "Mes" if freq_sel == "📅 Mensual" else "Semana"
