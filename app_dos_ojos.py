@@ -110,7 +110,7 @@ if df is not None:
     # ──────────────────────────────────────────────────────────
     # FUNCIÓN UNIFICADA PARA GRÁFICOS DE BARRAS HORIZONTALES
     # ──────────────────────────────────────────────────────────
-    def horizontal_bar_chart(df_plot, x_col, y_col, color_scale, title, height=500):
+    def horizontal_bar_chart(df_plot, x_col, y_col, color_scale, title, height=500, count_col=None):
         """
         Crea un gráfico de barras horizontales limpio con:
         - Etiquetas en formato $ dentro/fuera de la barra según espacio
@@ -124,8 +124,16 @@ if df is not None:
         # Ordenar de mayor a menor para mejor legibilidad
         df_sorted = df_plot.sort_values(x_col, ascending=True).copy()
 
-        # Etiquetas formateadas en USD
-        labels = [f"$ {v:,.2f}" for v in df_sorted[x_col]]
+        # Etiquetas formateadas en USD incluyendo conteo si existe
+        if count_col and count_col in df_sorted.columns:
+            labels = []
+            for v, c in zip(df_sorted[x_col], df_sorted[count_col]):
+                if c == "N/A":
+                    labels.append(f"$ {v:,.2f}")
+                else:
+                    labels.append(f"$ {v:,.2f} ({int(c)} reg)")
+        else:
+            labels = [f"$ {v:,.2f}" for v in df_sorted[x_col]]
 
         # Colores degradados (Plotly scale → lista de colores)
         n = len(df_sorted)
@@ -179,13 +187,28 @@ if df is not None:
     # ──────────────────────────────────────────────────────────
     t1, t2, t3, t4 = st.tabs(["📊 GRÁFICOS", "💸 EGRESOS", "💰 INGRESOS", "🔍 BUSCADOR"])
 
+    # Helper: muestra resumen de filtro debajo de cada gráfico
+    filtro_activo = bool(tipos_sel or areas_sel or prov_sel)
+    def filter_summary(df_filtrado, label_filtro):
+        if filtro_activo:
+            n   = len(df_filtrado)
+            tot = df_filtrado['MONTO BASE USD'].sum()
+            st.caption(
+                f"🔍 Filtro activo — **{label_filtro}**: {n} registro{'s' if n != 1 else ''} · "
+                f"Subtotal neto: **$ {tot:,.2f}** · "
+                f"+ Admin. Delegada: **$ {total_honorarios:,.2f}** · "
+                f"Total real: **$ {tot + total_honorarios:,.2f}**"
+            )
+
     with t1:
         # ── 1. Por TIPO ──────────────────────────────────────
         st.write("### 📌 Inversión por Tipo")
+        st.info(f"📊 **{len(df_gastos)}** registros de gastos filtrados - Subtotal: **$ {total_neto:,.2f}**")
         df_t = df_gastos.groupby('TIPO')['MONTO BASE USD'].sum().reset_index()
         df_t = pd.concat([df_t, pd.DataFrame({'TIPO': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
         horizontal_bar_chart(df_t, 'MONTO BASE USD', 'TIPO', 'Viridis',
                              '📌 Inversión total por Tipo de Gasto', height=max(350, len(df_t) * 45))
+        filter_summary(df_gastos, "Tipo" + (f": {', '.join(tipos_sel)}" if tipos_sel else ""))
 
         st.divider()
 
@@ -195,6 +218,7 @@ if df is not None:
         df_a = pd.concat([df_a, pd.DataFrame({'AREA': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
         horizontal_bar_chart(df_a, 'MONTO BASE USD', 'AREA', 'Blues',
                              '📐 Inversión total por Área de Obra', height=max(400, len(df_a) * 42))
+        filter_summary(df_gastos, "Área" + (f": {', '.join(areas_sel)}" if areas_sel else ""))
 
         st.divider()
 
@@ -205,6 +229,7 @@ if df is not None:
         df_p = pd.concat([df_p, pd.DataFrame({'PROVEEDOR': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
         horizontal_bar_chart(df_p, 'MONTO BASE USD', 'PROVEEDOR', 'Reds',
                              '👥 Top 20 Proveedores por Gasto', height=max(500, len(df_p) * 40))
+        filter_summary(df_gastos, "Proveedor" + (f": {', '.join(prov_sel)}" if prov_sel else ""))
 
         st.divider()
 
@@ -331,6 +356,7 @@ if df is not None:
 
     with t2:
         st.subheader("📝 Detalle de Gastos")
+        st.info(f"📋 **{len(df_gastos)}** movimientos de gastos en esta vista - Total Neto: **$ {total_neto:,.2f}**")
         cols_show = [c for c in ['FECHA', 'TIPO', 'AREA', 'PROVEEDOR', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL'] if c in df_gastos.columns]
         fmt = {c: "${:,.2f}" for c in ['MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL'] if c in cols_show}
         st.dataframe(
@@ -340,6 +366,7 @@ if df is not None:
 
     with t3:
         st.subheader("💰 Detalle de Ingresos")
+        st.success(f"💵 **{len(df_ingresos)}** ingresos registrados - Total: **$ {total_ing:,.2f}**")
         cols_ing = [c for c in ['FECHA', 'PROVEEDOR', 'MONTO BASE USD'] if c in df_ingresos.columns]
         st.dataframe(
             df_ingresos[cols_ing].sort_values('FECHA', ascending=False).style.format({"MONTO BASE USD": "${:,.2f}"}),
