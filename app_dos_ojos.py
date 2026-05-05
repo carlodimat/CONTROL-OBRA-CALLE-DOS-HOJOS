@@ -183,9 +183,7 @@ if df is not None:
         # ── 1. Por TIPO ──────────────────────────────────────
         st.write("### 📌 Inversión por Tipo")
         df_t = df_gastos.groupby('TIPO')['MONTO BASE USD'].sum().reset_index()
-        if not tipos_sel:
-            df_admin = pd.DataFrame({'TIPO': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})
-            df_t = pd.concat([df_t, df_admin], ignore_index=True)
+        df_t = pd.concat([df_t, pd.DataFrame({'TIPO': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
         horizontal_bar_chart(df_t, 'MONTO BASE USD', 'TIPO', 'Viridis',
                              '📌 Inversión total por Tipo de Gasto', height=max(350, len(df_t) * 45))
 
@@ -194,6 +192,7 @@ if df is not None:
         # ── 2. Por ÁREA ──────────────────────────────────────
         st.write("### 📐 Inversión por Área")
         df_a = df_gastos.groupby('AREA')['MONTO BASE USD'].sum().reset_index()
+        df_a = pd.concat([df_a, pd.DataFrame({'AREA': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
         horizontal_bar_chart(df_a, 'MONTO BASE USD', 'AREA', 'Blues',
                              '📐 Inversión total por Área de Obra', height=max(400, len(df_a) * 42))
 
@@ -203,6 +202,7 @@ if df is not None:
         st.write("### 👥 Top Proveedores")
         df_p = (df_gastos.groupby('PROVEEDOR')['MONTO BASE USD']
                 .sum().sort_values(ascending=False).head(20).reset_index())
+        df_p = pd.concat([df_p, pd.DataFrame({'PROVEEDOR': ['ADMINISTRACIÓN DELEGADA'], 'MONTO BASE USD': [total_honorarios]})], ignore_index=True)
         horizontal_bar_chart(df_p, 'MONTO BASE USD', 'PROVEEDOR', 'Reds',
                              '👥 Top 20 Proveedores por Gasto', height=max(500, len(df_p) * 40))
 
