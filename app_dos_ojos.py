@@ -82,12 +82,12 @@ if df is not None:
     if prov_sel:  df_gastos = df_gastos[df_gastos['PROVEEDOR'].isin(prov_sel)]
 
     # --- CÁLCULOS ---
-    total_ing         = df_ingresos['MONTO BASE USD'].sum()
-    total_neto        = df_gastos['MONTO BASE USD'].sum()
-    total_honorarios  = df_gastos['HONORARIOS'].sum()
-    total_pagado_neto = df_gastos['MONTO PAGADO'].sum()
-    total_pagado_real = total_pagado_neto * (1 + pct_admin / 100) if pct_admin > 0 else total_pagado_neto
-    saldo_caja        = total_ing - total_pagado_real
+    total_ing           = df_ingresos['MONTO BASE USD'].sum()
+    total_neto          = df_gastos['MONTO BASE USD'].sum()
+    total_honorarios    = df_gastos['HONORARIOS'].sum()
+    # Gasto real total = neto + honorarios AD (fuente única de verdad para todo el dashboard)
+    gasto_total_real    = total_neto + total_honorarios
+    saldo_caja          = total_ing - gasto_total_real
 
     # --- ENCABEZADO ---
     st.markdown(
@@ -322,12 +322,12 @@ if df is not None:
             st.plotly_chart(fig_time, use_container_width=True)
 
             # Mini resumen debajo del gráfico
-            saldo_acum = df_evol['INGRESOS'].iloc[-1] - df_evol['GASTOS'].iloc[-1]
-            color_sal  = "🟢" if saldo_acum >= 0 else "🔴"
+            # Usamos las mismas variables de las métricas de arriba → siempre coinciden
+            color_sal = "🟢" if saldo_caja >= 0 else "🔴"
             c1, c2, c3 = st.columns(3)
-            c1.metric("Ingresos Acumulados",      f"$ {df_evol['INGRESOS'].iloc[-1]:,.2f}")
-            c2.metric("Gastos + Admin. Acumulados", f"$ {df_evol['GASTOS'].iloc[-1]:,.2f}")
-            c3.metric(f"{color_sal} Saldo Neto",   f"$ {saldo_acum:,.2f}")
+            c1.metric("Ingresos Acumulados",       f"$ {total_ing:,.2f}")
+            c2.metric("Gastos + Admin. Acumulados", f"$ {gasto_total_real:,.2f}")
+            c3.metric(f"{color_sal} Saldo Neto",    f"$ {saldo_caja:,.2f}")
 
     with t2:
         st.subheader("📝 Detalle de Gastos")
