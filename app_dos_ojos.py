@@ -208,30 +208,109 @@ if df is not None:
 
         st.divider()
 
-        # ── 4. Evolución temporal ─────────────────────────────
-        st.write("### 📅 Evolución de Gastos en el Tiempo")
+        # ── 4. Evolución acumulativa en el Tiempo ─────────────
+        st.write("### 📅 Evolución Acumulativa de Gastos e Ingresos")
+
+        # Selector semanas / meses
+        freq_sel = st.radio(
+            "Agrupación:",
+            options=["📅 Mensual", "🗓️ Semanal"],
+            horizontal=True,
+            key="freq_time"
+        )
+        freq_code = "ME" if freq_sel == "📅 Mensual" else "W"
+
+        # Rango: desde primer ingreso hasta hoy
+        if not df_ingresos.empty:
+            fecha_inicio = df_ingresos['FECHA'].min()
+        else:
+            fecha_inicio = df_gastos_base['FECHA'].min()
+        fecha_hoy = pd.Timestamp.today().normalize()
+
+        # Índice completo del período
+        idx_full = pd.date_range(start=fecha_inicio, end=fecha_hoy, freq=freq_code)
+
         if not df_gastos.empty:
-            df_time = (df_gastos.set_index('FECHA')['MONTO BASE USD']
-                       .resample('ME').sum().reset_index())
-            df_time.columns = ['FECHA', 'MONTO']
-            fig_time = px.area(
-                df_time, x='FECHA', y='MONTO',
-                labels={'FECHA': 'Mes', 'MONTO': 'Monto USD'},
-                color_discrete_sequence=['#1e3a8a']
+            # Gastos por período → cumsum
+            s_gastos = (df_gastos.set_index('FECHA')['MONTO BASE USD']
+                        .resample(freq_code).sum()
+                        .reindex(idx_full, fill_value=0)
+                        .cumsum())
+
+            # Ingresos por período → cumsum (siempre sobre datos completos, sin filtro)
+            s_ingresos = (df_ingresos.set_index('FECHA')['MONTO BASE USD']
+                          .resample(freq_code).sum()
+                          .reindex(idx_full, fill_value=0)
+                          .cumsum())
+
+            df_evol = pd.DataFrame({
+                'FECHA'   : idx_full,
+                'GASTOS'  : s_gastos.values,
+                'INGRESOS': s_ingresos.values,
+            })
+
+            fig_time = go.Figure()
+
+            # Área de ingresos (fondo)
+            fig_time.add_trace(go.Scatter(
+                x=df_evol['FECHA'], y=df_evol['INGRESOS'],
+                name='Ingresos Acum.',
+                mode='lines',
+                line=dict(color='#22c55e', width=2),
+                fill='tozeroy',
+                fillcolor='rgba(34,197,94,0.15)',
+                hovertemplate='<b>%{x|%d/%m/%Y}</b><br>Ingresos: $ %{y:,.2f}<extra></extra>',
+            ))
+
+            # Área de gastos (encima)
+            fig_time.add_trace(go.Scatter(
+                x=df_evol['FECHA'], y=df_evol['GASTOS'],
+                name='Gastos Acum.',
+                mode='lines+markers',
+                line=dict(color='#1e3a8a', width=2.5),
+                fill='tozeroy',
+                fillcolor='rgba(30,58,138,0.18)',
+                marker=dict(size=5, color='#1e3a8a'),
+                hovertemplate='<b>%{x|%d/%m/%Y}</b><br>Gastos: $ %{y:,.2f}<extra></extra>',
+            ))
+
+            # Línea vertical "hoy"
+            fig_time.add_vline(
+                x=fecha_hoy, line_dash='dot', line_color='#ef4444',
+                annotation_text='HOY', annotation_position='top right',
+                annotation_font=dict(color='#ef4444', size=11)
             )
+
+            lbl = "Mes" if freq_sel == "📅 Mensual" else "Semana"
             fig_time.update_layout(
-                height=350,
+                height=420,
                 plot_bgcolor='#f8fafc',
                 paper_bgcolor='#ffffff',
-                margin=dict(l=10, r=20, t=30, b=30),
-                yaxis=dict(tickprefix='$ ', tickformat=',.0f'),
-                xaxis=dict(showgrid=False),
+                margin=dict(l=10, r=20, t=40, b=30),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                xaxis=dict(
+                    title=lbl,
+                    range=[fecha_inicio, fecha_hoy],
+                    showgrid=True, gridcolor='#e5e7eb',
+                    tickformat='%b %Y' if freq_sel == "📅 Mensual" else '%d %b %Y',
+                ),
+                yaxis=dict(
+                    title='USD acumulado',
+                    tickprefix='$ ', tickformat=',.0f',
+                    showgrid=True, gridcolor='#e5e7eb',
+                ),
+                hovermode='x unified',
             )
-            fig_time.update_traces(
-                text=[f"$ {v:,.0f}" for v in df_time['MONTO']],
-                textposition='top center',
-            )
+
             st.plotly_chart(fig_time, use_container_width=True)
+
+            # Mini resumen debajo del gráfico
+            saldo_acum = df_evol['INGRESOS'].iloc[-1] - df_evol['GASTOS'].iloc[-1]
+            color_sal  = "🟢" if saldo_acum >= 0 else "🔴"
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Ingresos Acumulados", f"$ {df_evol['INGRESOS'].iloc[-1]:,.2f}")
+            c2.metric("Gastos Acumulados",   f"$ {df_evol['GASTOS'].iloc[-1]:,.2f}")
+            c3.metric(f"{color_sal} Saldo Neto", f"$ {saldo_acum:,.2f}")
 
     with t2:
         st.subheader("📝 Detalle de Gastos")
