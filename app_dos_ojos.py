@@ -387,22 +387,23 @@ if df is not None:
         )
 
     with t4:
-        st.subheader("🔍 Buscador")
-        q = st.text_input("Escriba una palabra exacta para buscar en todos los campos:")
+        st.subheader("🔍 Buscador por Descripción")
+        q = st.text_input("📝 Escriba una palabra exacta para buscar en la columna DESCRIPCIÓN:")
         if q:
             import re
-            # Búsqueda por palabra exacta con límites de palabra (\b)
-            # Así 'Bar' no coincide con 'Barbiquiu'
-            pattern = r'\b' + re.escape(q) + r'\b'
-            mask = df.apply(
-                lambda r: r.astype(str).str.contains(pattern, case=False, regex=True).any(), axis=1
-            )
-            res = df[mask]
-            st.success(f"🔍 **{len(res)}** registro{'s' if len(res) != 1 else ''} encontrado{'s' if len(res) != 1 else ''} "
-                       f"con la palabra exacta **‘{q}’** | Total: **$ {res['MONTO BASE USD'].sum():,.2f}**")
-            fmt_res = {c: "${:,.2f}" for c in ['MONTO BASE USD', 'COSTO TOTAL', 'HONORARIOS'] if c in res.columns}
-            fmt_res.update({c: "{:,.2f}" for c in ['MONTO ORIG', 'TASA'] if c in res.columns})
-            st.dataframe(res.style.format(fmt_res), use_container_width=True)
+            if 'DESCRIPCION' not in df.columns:
+                st.warning("⚠️ La columna DESCRIPCION no existe en el CSV.")
+            else:
+                pattern = r'\b' + re.escape(q) + r'\b'
+                mask = df['DESCRIPCION'].astype(str).str.contains(pattern, case=False, regex=True)
+                res  = df[mask]
+                st.success(
+                    f"🔍 **{len(res)}** registro{'s' if len(res) != 1 else ''} encontrado{'s' if len(res) != 1 else ''} "
+                    f"con **‘{q}’** en DESCRIPCIÓN | Total: **$ {res['MONTO BASE USD'].sum():,.2f}**"
+                )
+                fmt_res = {c: "${:,.2f}" for c in ['MONTO BASE USD', 'COSTO TOTAL', 'HONORARIOS'] if c in res.columns}
+                fmt_res.update({c: "{:,.2f}" for c in ['MONTO ORIG', 'TASA'] if c in res.columns})
+                st.dataframe(res.style.format(fmt_res), use_container_width=True)
 
 else:
     st.error("❌ No se encontró el archivo CSV 'DIMAQUINAS CALLE DOS OJOS.csv'. Verifica que esté en el mismo directorio.")
