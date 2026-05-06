@@ -398,14 +398,21 @@ if df is not None:
                 pattern = re.escape(q) 
                 mask = df['DESCRIPCION'].astype(str).str.contains(pattern, case=False, regex=True)
                 res  = df[mask]
-                st.success(
-                    f"🔍 **{len(res)}** registro{'s' if len(res) != 1 else ''} encontrado{'s' if len(res) != 1 else ''} "
-                    f"que contiene **‘{q}’** en DESCRIPCIÓN | Total: **$ {res['MONTO BASE USD'].sum():,.2f}**"
-                )
-                # Seleccionamos solo las columnas solicitadas
-                cols_buscador = [c for c in ['FECHA', 'TIPO', 'AREA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO ORIG', '% ADMIN', 'HONORARIOS'] if c in res.columns]
                 
-                fmt_res = {c: "${:,.2f}" for c in ['HONORARIOS', 'MONTO BASE USD'] if c in res.columns}
+                # Calculamos los totales de la busqueda
+                s_orig = res['MONTO ORIG'].sum() if 'MONTO ORIG' in res.columns else 0
+                s_hon  = res['HONORARIOS'].sum() if 'HONORARIOS' in res.columns else 0
+                s_total = res['COSTO TOTAL'].sum() if 'COSTO TOTAL' in res.columns else 0
+
+                st.success(
+                    f"🔍 **{len(res)}** registros encontrados con **‘{q}’** en DESCRIPCIÓN\n\n"
+                    f"💰 **Totales:** Neto Orig: **{s_orig:,.2f}** | Admin: **$ {s_hon:,.2f}** | Total: **$ {s_total:,.2f}**"
+                )
+                
+                # Seleccionamos las columnas solicitadas
+                cols_buscador = [c for c in ['FECHA', 'TIPO', 'AREA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO ORIG', '% ADMIN', 'HONORARIOS', 'COSTO TOTAL'] if c in res.columns]
+                
+                fmt_res = {c: "${:,.2f}" for c in ['HONORARIOS', 'COSTO TOTAL', 'MONTO BASE USD'] if c in res.columns}
                 fmt_res.update({c: "{:,.2f}" for c in ['MONTO ORIG', '% ADMIN'] if c in res.columns})
                 
                 st.dataframe(
