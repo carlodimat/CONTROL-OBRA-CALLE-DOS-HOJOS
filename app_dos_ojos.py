@@ -370,8 +370,13 @@ if df is not None:
     with t2:
         st.subheader("📝 Detalle de Gastos")
         st.info(f"📋 **{len(df_gastos)}** movimientos de gastos en esta vista - Total Neto: **$ {total_neto:,.2f}**")
-        cols_show = [c for c in ['FECHA', 'TIPO', 'AREA', 'PROVEEDOR', 'MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL'] if c in df_gastos.columns]
-        fmt = {c: "${:,.2f}" for c in ['MONTO BASE USD', 'HONORARIOS', 'COSTO TOTAL'] if c in cols_show}
+        
+        # Columnas estandarizadas
+        cols_show = [c for c in ['FECHA', 'TIPO', 'AREA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO ORIG', '% ADMIN', 'HONORARIOS', 'COSTO TOTAL'] if c in df_gastos.columns]
+        
+        fmt = {c: "${:,.2f}" for c in ['HONORARIOS', 'COSTO TOTAL', 'MONTO BASE USD'] if c in cols_show}
+        fmt.update({c: "{:,.2f}" for c in ['MONTO ORIG', '% ADMIN'] if c in cols_show})
+        
         st.dataframe(
             df_gastos[cols_show].sort_values('FECHA', ascending=False).style.format(fmt),
             use_container_width=True
