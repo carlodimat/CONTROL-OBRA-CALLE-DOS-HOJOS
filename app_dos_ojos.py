@@ -402,9 +402,16 @@ if df is not None:
                     f"🔍 **{len(res)}** registro{'s' if len(res) != 1 else ''} encontrado{'s' if len(res) != 1 else ''} "
                     f"que contiene **‘{q}’** en DESCRIPCIÓN | Total: **$ {res['MONTO BASE USD'].sum():,.2f}**"
                 )
-                fmt_res = {c: "${:,.2f}" for c in ['MONTO BASE USD', 'COSTO TOTAL', 'HONORARIOS'] if c in res.columns}
-                fmt_res.update({c: "{:,.2f}" for c in ['MONTO ORIG', 'TASA'] if c in res.columns})
-                st.dataframe(res.style.format(fmt_res), use_container_width=True)
+                # Seleccionamos solo las columnas solicitadas
+                cols_buscador = [c for c in ['FECHA', 'TIPO', 'AREA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO ORIG', '% ADMIN', 'HONORARIOS'] if c in res.columns]
+                
+                fmt_res = {c: "${:,.2f}" for c in ['HONORARIOS', 'MONTO BASE USD'] if c in res.columns}
+                fmt_res.update({c: "{:,.2f}" for c in ['MONTO ORIG', '% ADMIN'] if c in res.columns})
+                
+                st.dataframe(
+                    res[cols_buscador].sort_values('FECHA', ascending=False).style.format(fmt_res), 
+                    use_container_width=True
+                )
 
 else:
     st.error("❌ No se encontró el archivo CSV 'DIMAQUINAS CALLE DOS OJOS.csv'. Verifica que esté en el mismo directorio.")
