@@ -394,12 +394,13 @@ if df is not None:
             if 'DESCRIPCION' not in df.columns:
                 st.warning("⚠️ La columna DESCRIPCION no existe en el CSV.")
             else:
-                pattern = r'\b' + re.escape(q) + r'\b'
+                # Quitamos \b para que sea mas flexible (ej: Cabilla encuentra Cabillas)
+                pattern = re.escape(q) 
                 mask = df['DESCRIPCION'].astype(str).str.contains(pattern, case=False, regex=True)
                 res  = df[mask]
                 st.success(
                     f"🔍 **{len(res)}** registro{'s' if len(res) != 1 else ''} encontrado{'s' if len(res) != 1 else ''} "
-                    f"con **‘{q}’** en DESCRIPCIÓN | Total: **$ {res['MONTO BASE USD'].sum():,.2f}**"
+                    f"que contiene **‘{q}’** en DESCRIPCIÓN | Total: **$ {res['MONTO BASE USD'].sum():,.2f}**"
                 )
                 fmt_res = {c: "${:,.2f}" for c in ['MONTO BASE USD', 'COSTO TOTAL', 'HONORARIOS'] if c in res.columns}
                 fmt_res.update({c: "{:,.2f}" for c in ['MONTO ORIG', 'TASA'] if c in res.columns})
