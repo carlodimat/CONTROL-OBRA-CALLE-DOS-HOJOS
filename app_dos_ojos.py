@@ -87,6 +87,9 @@ def create_pdf(df_report, title_report, totals_info=""):
                 try: val = row[col].strftime('%d/%m/%Y')
                 except: pass
             
+            # Sanitizar texto para evitar errores de codificacion (acentos, ñ, etc)
+            val = val.encode('latin-1', 'replace').decode('latin-1')
+            
             # Truncar descripcion si es muy larga
             if col == 'DESCRIPCION' and len(val) > 45: val = val[:42] + "..."
                 
