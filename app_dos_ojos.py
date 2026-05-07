@@ -93,7 +93,7 @@ def create_pdf(df_report, title_report, totals_info=""):
             pdf.cell(widths[i], 7, val, border=1)
         pdf.ln()
         
-    return pdf.output()
+    return bytes(pdf.output())
 
 def load_all_data():
 
