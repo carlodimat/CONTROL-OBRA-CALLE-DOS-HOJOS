@@ -50,20 +50,20 @@ def create_pdf(df_report, title_report, totals_info=""):
     """Genera un buffer de PDF a partir de un DataFrame."""
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_font("helvetica", "B", 16)
     
     # Encabezado
     pdf.cell(190, 10, title_report, ln=True, align='C')
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("helvetica", "", 10)
     pdf.cell(190, 10, f"Generado el: {pd.Timestamp.today().strftime('%d/%m/%Y %H:%M')}", ln=True, align='C')
     
     if totals_info:
-        pdf.set_font("Arial", "B", 10)
+        pdf.set_font("helvetica", "B", 10)
         pdf.multi_cell(190, 10, totals_info)
         pdf.ln(5)
 
     # Tabla
-    pdf.set_font("Arial", "B", 8)
+    pdf.set_font("helvetica", "B", 8)
     # Seleccionar columnas mas importantes para que quepan en el ancho
     cols = [c for c in ['FECHA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO ORIG', 'HONORARIOS', 'COSTO TOTAL'] if c in df_report.columns]
     
@@ -76,7 +76,7 @@ def create_pdf(df_report, title_report, totals_info=""):
     pdf.ln()
     
     # Datos
-    pdf.set_font("Arial", "", 7)
+    pdf.set_font("helvetica", "", 7)
     for _, row in df_report.iterrows():
         for i, col in enumerate(cols):
             val = str(row[col])
