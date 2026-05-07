@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from fpdf import FPDF
 import io
 
 # 1. CONFIGURACIÓN DE PÁGINA
@@ -46,57 +45,12 @@ def wrap_label(text, width=18):
         lines.append(" ".join(current))
     return "<br>".join(lines)
 
-def create_pdf(df_report, title_report, totals_info=""):
-    """Genera un buffer de PDF a partir de un DataFrame."""
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("helvetica", "B", 16)
-    
-    # Encabezado
-    pdf.cell(190, 10, title_report, ln=True, align='C')
-    pdf.set_font("helvetica", "", 10)
-    pdf.cell(190, 10, f"Generado el: {pd.Timestamp.today().strftime('%d/%m/%Y %H:%M')}", ln=True, align='C')
-    
-    if totals_info:
-        pdf.set_font("helvetica", "B", 10)
-        pdf.multi_cell(190, 10, totals_info)
-        pdf.ln(5)
-
-    # Tabla
-    pdf.set_font("helvetica", "B", 8)
-    # Seleccionar columnas mas importantes para que quepan en el ancho
-    cols = [c for c in ['FECHA', 'PROVEEDOR', 'DESCRIPCION', 'MONTO ORIG', 'HONORARIOS', 'COSTO TOTAL'] if c in df_report.columns]
-    
-    # Anchos de columna proporcionales
-    widths = [20, 35, 65, 25, 20, 25]
-    
-    # Cabecera de tabla
-    for i, col in enumerate(cols):
-        pdf.cell(widths[i], 8, col, border=1, align='C')
-    pdf.ln()
-    
-    # Datos
-    pdf.set_font("helvetica", "", 7)
-    for _, row in df_report.iterrows():
-        for i, col in enumerate(cols):
-            val = str(row[col])
-            if 'MONTO' in col or 'HONORARIOS' in col or 'COSTO' in col:
-                try: val = f"{float(row[col]):,.2f}"
-                except: pass
-            elif 'FECHA' in col:
-                try: val = row[col].strftime('%d/%m/%Y')
-                except: pass
-            
-            # Sanitizar texto para evitar errores de codificacion (acentos, ñ, etc)
-            val = val.encode('latin-1', 'replace').decode('latin-1')
-            
-            # Truncar descripcion si es muy larga
-            if col == 'DESCRIPCION' and len(val) > 45: val = val[:42] + "..."
-                
-            pdf.cell(widths[i], 7, val, border=1)
-        pdf.ln()
-        
-    return bytes(pdf.output())
+def create_excel(df_report):
+    """Genera un archivo Excel en memoria."""
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_report.to_excel(writer, index=False, sheet_name='Reporte')
+    return output.getvalue()
 
 def load_all_data():
 
@@ -436,15 +390,15 @@ if df is not None:
             use_container_width=True
         )
 
-        # Boton de PDF para Egresos
-        summary_text = f"Total Neto: $ {total_neto:,.2f} | Admin: $ {total_honorarios:,.2f} | Total Real: $ {gasto_total_real:,.2f}"
-        pdf_data = create_pdf(df_gastos.sort_values('FECHA', ascending=False), f"REPORTE DE EGRESOS - {obra}", summary_text)
+        # Botón de Excel para Egresos
+        excel_data = create_excel(df_gastos[cols_show].sort_values('FECHA', ascending=False))
         st.download_button(
-            label="📄 Descargar Egresos en PDF",
-            data=pdf_data,
-            file_name=f"Egresos_{obra}_{pd.Timestamp.today().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf"
+            label="📊 Descargar Reporte Egresos (Excel)",
+            data=excel_data,
+            file_name=f"Egresos_{obra}_{pd.Timestamp.today().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
     with t3:
@@ -456,15 +410,15 @@ if df is not None:
             use_container_width=True
         )
 
-        # Boton de PDF para Ingresos
-        summary_ing = f"Total Ingresos: $ {total_ing:,.2f}"
-        pdf_ing = create_pdf(df_ingresos.sort_values('FECHA', ascending=False), f"REPORTE DE INGRESOS - {obra}", summary_ing)
+        # Botón de Excel para Ingresos
+        excel_ing = create_excel(df_ingresos[cols_ing].sort_values('FECHA', ascending=False))
         st.download_button(
-            label="📄 Descargar Ingresos en PDF",
-            data=pdf_ing,
-            file_name=f"Ingresos_{obra}_{pd.Timestamp.today().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf"
+            label="📊 Descargar Reporte Ingresos (Excel)",
+            data=excel_ing,
+            file_name=f"Ingresos_{obra}_{pd.Timestamp.today().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
     with t4:
