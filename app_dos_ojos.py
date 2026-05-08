@@ -120,6 +120,41 @@ if df is not None:
 
     st.divider()
 
+    # --- RESUMEN GLOBAL DE FILTROS ---
+    if filtro_activo:
+        filtros_desc = []
+        if tipos_sel: filtros_desc.append(f"Tipos: {', '.join(tipos_sel)}")
+        if areas_sel: filtros_desc.append(f"Áreas: {', '.join(areas_sel)}")
+        if prov_sel:  filtros_desc.append(f"Proveedores: {', '.join(prov_sel)}")
+        
+        lbl_filtros = " | ".join(filtros_desc)
+        
+        st.markdown(
+            f"""<div style='background:#eff6ff; border: 2px solid #1e3a8a; padding: 20px; border-radius: 15px; margin-bottom: 25px;'>
+                <h3 style='margin-top:0; color:#1e3a8a; font-size: 1.2rem;'>🔍 RESUMEN DE SELECCIÓN</h3>
+                <p style='margin-bottom:8px; font-size: 0.9rem; color: #1e40af;'><b>Filtrado por:</b> {lbl_filtros}</p>
+                <div style='display: flex; gap: 20px; flex-wrap: wrap;'>
+                    <div style='background:white; padding: 10px 20px; border-radius: 10px; border: 1px solid #bfdbfe;'>
+                        <span style='font-size: 0.8rem; color: #64748b; text-transform: uppercase;'>Registros</span><br>
+                        <span style='font-size: 1.3rem; font-weight: 900; color: #1e3a8a;'>{len(df_gastos)}</span>
+                    </div>
+                    <div style='background:white; padding: 10px 20px; border-radius: 10px; border: 1px solid #bfdbfe;'>
+                        <span style='font-size: 0.8rem; color: #64748b; text-transform: uppercase;'>Subtotal Neto</span><br>
+                        <span style='font-size: 1.3rem; font-weight: 900; color: #1e3a8a;'>$ {total_neto:,.2f}</span>
+                    </div>
+                    <div style='background:white; padding: 10px 20px; border-radius: 10px; border: 1px solid #bfdbfe;'>
+                        <span style='font-size: 0.8rem; color: #64748b; text-transform: uppercase;'>Admin. Delegada</span><br>
+                        <span style='font-size: 1.3rem; font-weight: 900; color: #1e3a8a;'>$ {total_honorarios:,.2f}</span>
+                    </div>
+                    <div style='background:white; padding: 10px 20px; border-radius: 10px; border: 1px solid #bfdbfe;'>
+                        <span style='font-size: 0.8rem; color: #64748b; text-transform: uppercase;'>TOTAL REAL FILTRADO</span><br>
+                        <span style='font-size: 1.5rem; font-weight: 900; color: #1e3a8a;'>$ {gasto_total_real:,.2f}</span>
+                    </div>
+                </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
     # ──────────────────────────────────────────────────────────
     # FUNCIÓN UNIFICADA PARA GRÁFICOS DE BARRAS HORIZONTALES
     # ──────────────────────────────────────────────────────────
@@ -377,6 +412,16 @@ if df is not None:
 
     with t2:
         st.subheader("📝 Detalle de Gastos")
+
+        # Resumen rápido para la tabla de egresos
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Registros", f"{len(df_gastos)}")
+        c2.metric("Total Neto", f"$ {total_neto:,.2f}")
+        c3.metric("Admin. Delegada", f"$ {total_honorarios:,.2f}")
+        c4.metric("TOTAL FILTRADO", f"$ {gasto_total_real:,.2f}")
+
+        st.divider()
+
         st.info(f"📋 **{len(df_gastos)}** movimientos de gastos en esta vista - Total Neto: **$ {total_neto:,.2f}**")
         
         # Columnas estandarizadas
